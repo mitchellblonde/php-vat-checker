@@ -13,7 +13,17 @@ use StdClass;
 
 class ViesGateway implements ApiGateway
 {
-    const URL = 'http://ec.europa.eu/taxation_customs/vies/checkVatService.wsdl';
+    const URL = 'https://ec.europa.eu/taxation_customs/vies/checkVatService.wsdl';
+
+    /**
+     * Seconds to wait for the connection to VIES to be established.
+     */
+    const CONNECTION_TIMEOUT = 10;
+
+    /**
+     * Seconds to wait for VIES to respond (WSDL load and SOAP call).
+     */
+    const RESPONSE_TIMEOUT = 15;
 
     /**
      * @param  string  $countryCode
@@ -27,7 +37,12 @@ class ViesGateway implements ApiGateway
     public function check(string $countryCode, string $vatNumber): VATResponse
     {
         try {
-            $response = (new SoapClient(self::URL))->checkVat([
+            $response = (new SoapClient(self::URL, [
+                'connection_timeout' => self::CONNECTION_TIMEOUT,
+                'stream_context' => stream_context_create([
+                    'http' => ['timeout' => self::RESPONSE_TIMEOUT],
+                ]),
+            ]))->checkVat([
                 'countryCode'=> $countryCode,
                 'vatNumber'=> $vatNumber,
             ]);
